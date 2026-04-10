@@ -14,9 +14,7 @@ export default function BottomNav({ activeTab, setActiveTab, t }) {
         <button
           key={item.key}
           type="button"
-          className={`hub-bottom-nav-btn ${
-            activeTab === item.key ? 'active' : ''
-          }`}
+          className={`hub-bottom-nav-btn ${activeTab === item.key ? 'active' : ''}`}
           onClick={() => setActiveTab(item.key)}
           aria-current={activeTab === item.key ? 'page' : undefined}
         >
