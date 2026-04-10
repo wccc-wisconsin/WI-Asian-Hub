@@ -150,13 +150,7 @@ export default function App() {
 
     async function reloadAppNow() {
       try {
-        const bust = `t=${Date.now()}`;
-        const target = `${window.location.pathname}${
-          window.location.search
-            ? `${window.location.search}&${bust}`
-            : `?${bust}`
-        }${window.location.hash}`;
-        window.location.replace(target);
+        window.location.reload();
       } catch {
         window.location.reload();
       }
@@ -178,7 +172,7 @@ export default function App() {
           return;
         }
 
-        if (lastSeenRemoteBuildRef.current !== remoteBuild) {
+        if (lastSeenRemoteBuildRef.current != remoteBuild) {
           lastSeenRemoteBuildRef.current = remoteBuild;
           setShowUpdateBanner(true);
           return;
@@ -241,13 +235,7 @@ export default function App() {
         t={t}
         onDismiss={() => setShowUpdateBanner(false)}
         onRefresh={() => {
-          const bust = `t=${Date.now()}`;
-          const target = `${window.location.pathname}${
-            window.location.search
-              ? `${window.location.search}&${bust}`
-              : `?${bust}`
-          }${window.location.hash}`;
-          window.location.replace(target);
+          window.location.reload();
         }}
       />
 
