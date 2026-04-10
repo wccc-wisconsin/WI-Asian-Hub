@@ -5,13 +5,16 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   min-height: 100%;
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
   background: #f7f8fb;
   color: #1f2937;
 }
@@ -31,28 +34,6 @@ body {
 }
 
 /* =========================
-   Top Bar
-========================= */
-.hub-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.hub-title {
-  margin: 0;
-  font-size: 26px;
-}
-
-.hub-subtitle {
-  margin: 6px 0 14px;
-  color: #6b7280;
-}
-
-/* =========================
    Controls
 ========================= */
 .hub-controls {
@@ -67,26 +48,54 @@ body {
   border-radius: 12px;
   border: 1px solid #d1d5db;
   font-size: 14px;
-  background: white;
+  background: #fff;
+  color: #1f2937;
+  outline: none;
+}
+
+.hub-input:focus,
+.hub-select:focus {
+  border-color: #1f3c88;
 }
 
 /* =========================
-   Cards
+   Cards / Business Module
 ========================= */
+.hub-list {
+  display: grid;
+  gap: 14px;
+}
+
+.hub-business-card,
 .hub-card {
-  background: white;
+  background: #fff;
   border-radius: 16px;
   padding: 16px;
   border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.hub-card-body {
+  display: flex;
+  flex-direction: column;
 }
 
 .hub-card-title {
   margin: 0;
   font-size: 18px;
+  line-height: 1.3;
+}
+
+.hub-business-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .hub-badges {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
 }
@@ -97,6 +106,7 @@ body {
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .hub-badge-location {
@@ -105,16 +115,30 @@ body {
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .hub-meta {
   margin-top: 8px;
   color: #4b5563;
   font-size: 14px;
+  line-height: 1.5;
+}
+
+.hub-business-description {
+  margin-top: 10px;
+}
+
+.hub-info-grid {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
 }
 
 .hub-action-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid #dbe1ea;
@@ -122,11 +146,22 @@ body {
   color: #1f3c88;
   text-decoration: none;
   font-size: 12px;
+  font-weight: 600;
   margin-right: 6px;
+  margin-top: 8px;
+}
+
+.hub-link {
+  color: #1f3c88;
+  text-decoration: none;
+}
+
+.hub-link:hover {
+  text-decoration: underline;
 }
 
 /* =========================
-   Bottom Nav (FIXED)
+   Bottom Nav
 ========================= */
 .hub-bottom-nav {
   position: fixed;
@@ -136,13 +171,14 @@ body {
   z-index: 9999;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: white;
+  background: #fff;
   border-top: 1px solid #ddd;
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.08);
 }
 
 .hub-bottom-nav-btn {
   border: none;
-  background: none;
+  background: transparent;
   padding: 10px 4px 12px;
   display: flex;
   flex-direction: column;
@@ -151,6 +187,7 @@ body {
   gap: 3px;
   font-size: 11px;
   color: #6b7280;
+  cursor: pointer;
 }
 
 .hub-bottom-nav-btn.active {
@@ -160,9 +197,9 @@ body {
 
 .hub-bottom-nav-icon {
   font-size: 18px;
+  line-height: 1;
 }
 
-/* Spacer so content doesn't hide behind nav */
 .hub-mobile-spacer {
   height: 70px;
 }
@@ -171,8 +208,11 @@ body {
    Update Banner
 ========================= */
 .hub-updatebar {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
   background: #1f3c88;
-  color: white;
+  color: #fff;
   padding: 10px 14px;
   display: flex;
   justify-content: space-between;
@@ -180,33 +220,43 @@ body {
 }
 
 .hub-update-btn {
-  background: white;
+  background: #fff;
   color: #1f3c88;
   border: none;
   padding: 6px 10px;
   border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .hub-dismiss-btn {
   background: transparent;
   border: none;
-  color: white;
+  color: #fff;
+  cursor: pointer;
 }
 
 /* =========================
    Status
 ========================= */
 .hub-error {
-  color: red;
+  color: #b91c1c;
+  padding: 12px 0;
 }
 
 .hub-loading {
   text-align: center;
   padding: 20px;
+  color: #4b5563;
+}
+
+.hub-message {
+  color: #6b7280;
+  font-size: 14px;
 }
 
 /* =========================
-   Mobile Optimization
+   Mobile
 ========================= */
 @media (max-width: 768px) {
   .hub-inner {
