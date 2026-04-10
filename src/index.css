@@ -41,3 +41,8 @@
   display: block;
   height: calc(96px + env(safe-area-inset-bottom));
 }
+
+.hub-bottom-nav {
+  display: grid !important;
+}
+
