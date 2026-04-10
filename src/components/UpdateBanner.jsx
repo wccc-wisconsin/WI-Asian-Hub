@@ -1,27 +1,41 @@
 import React from 'react';
 
-export default function BottomNav({ activeTab, setActiveTab, t }) {
-  const items = [
-    ['business', t.business, '◫'],
-    ['events', t.events, '◷'],
-    ['news', t.news, '☰'],
-    ['more', t.more, '⋯'],
-  ];
+export default function UpdateBanner({
+  visible,
+  latestVersion,
+  t,
+  onDismiss,
+  onRefresh,
+}) {
+  if (!visible) return null;
 
   return (
-    <nav className="hub-bottom-nav" aria-label="Mobile navigation">
-      {items.map(([key, label, icon]) => (
+    <div className="hub-updatebar">
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <strong>{t.updateAvailable}</strong>
+        <span style={{ fontSize: 12, opacity: 0.9 }}>
+          {t.refreshHelp}
+          {latestVersion ? ` (${latestVersion})` : ''}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
         <button
-          key={key}
           type="button"
-          className={`hub-bottom-nav-btn ${activeTab === key ? 'active' : ''}`}
-          onClick={() => setActiveTab(key)}
-          aria-current={activeTab === key ? 'page' : undefined}
+          className="hub-dismiss-btn"
+          onClick={onDismiss}
         >
-          <span className="hub-bottom-nav-icon">{icon}</span>
-          <span>{label}</span>
+          {t.dismiss}
         </button>
-      ))}
-    </nav>
+
+        <button
+          type="button"
+          className="hub-update-btn"
+          onClick={onRefresh}
+        >
+          {t.refreshCta}
+        </button>
+      </div>
+    </div>
   );
 }
