@@ -7,14 +7,12 @@ import {
   dedupeBy,
   filterSimple,
   getCategoryLabel,
-  isStandaloneMode,
   normalizeWebsite,
 } from './utils/helpers';
 import { BUILD_VERSION } from './buildVersion';
 
 const BUSINESSES_RANGE = 'Businesses!A:Z';
 const CATEGORIES_RANGE = 'Categories!A:Z';
-
 const VERSION_CHECK_INTERVAL = 30000;
 const AUTO_REFRESH_AFTER_UPDATE_MS = 15000;
 
@@ -53,16 +51,12 @@ export default function App() {
 
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   const [latestVersion, setLatestVersion] = useState('');
-  const [isStandalone, setIsStandalone] = useState(false);
 
   const currentVersionRef = useRef(String(BUILD_VERSION || '').trim());
   const versionCheckInFlightRef = useRef(false);
 
   const t = UI_TEXT[language];
 
-  // =============================
-  // Category Map
-  // =============================
   const categoryMap = useMemo(() => {
     const map = {};
     categories.forEach((item, i) => {
@@ -74,9 +68,6 @@ export default function App() {
     return map;
   }, [categories]);
 
-  // =============================
-  // Locations
-  // =============================
   const locationOptions = useMemo(() => {
     return dedupeBy(
       businesses
@@ -86,9 +77,6 @@ export default function App() {
     );
   }, [businesses]);
 
-  // =============================
-  // Filtering
-  // =============================
   const filteredBusinesses = useMemo(() => {
     let items = filterSimple(businesses, search, [
       'business_name',
@@ -96,6 +84,10 @@ export default function App() {
       'description',
       'city',
       'state',
+      'category',
+      'category_key',
+      'email',
+      'website',
     ]);
 
     if (selectedCategory) {
@@ -106,21 +98,18 @@ export default function App() {
 
     if (selectedLocation) {
       items = items.filter(
-        (b) =>
-          [b.city, b.state].filter(Boolean).join(', ') === selectedLocation
+        (b) => [b.city, b.state].filter(Boolean).join(', ') === selectedLocation
       );
     }
 
     return items;
   }, [businesses, search, selectedCategory, selectedLocation]);
 
-  // =============================
-  // Load Data
-  // =============================
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
+        setError('');
         const [b, c] = await Promise.all([
           fetchSheet(BUSINESSES_RANGE),
           fetchSheet(CATEGORIES_RANGE),
@@ -128,7 +117,7 @@ export default function App() {
         setBusinesses(b);
         setCategories(c);
       } catch (e) {
-        setError(e.message);
+        setError(e?.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
@@ -136,16 +125,6 @@ export default function App() {
     load();
   }, []);
 
-  // =============================
-  // Standalone Detection
-  // =============================
-  useEffect(() => {
-    setIsStandalone(isStandaloneMode());
-  }, []);
-
-  // =============================
-  // Version Check
-  // =============================
   useEffect(() => {
     let disposed = false;
     let timer;
@@ -162,18 +141,19 @@ export default function App() {
 
         if (remoteVersion !== currentVersionRef.current) {
           setShowUpdateBanner(true);
-
           timer = setTimeout(() => {
-            window.location.reload(true);
+            const bust = `t=${Date.now()}`;
+            const target = `${window.location.pathname}${window.location.search ? `${window.location.search}&${bust}` : `?${bust}`}${window.location.hash}`;
+            window.location.replace(target);
           }, AUTO_REFRESH_AFTER_UPDATE_MS);
         }
-      } catch {}
-
-      versionCheckInFlightRef.current = false;
+      } catch {
+      } finally {
+        versionCheckInFlightRef.current = false;
+      }
     }
 
     check();
-
     const interval = setInterval(check, VERSION_CHECK_INTERVAL);
 
     return () => {
@@ -183,23 +163,21 @@ export default function App() {
     };
   }, []);
 
-  // =============================
-  // UI
-  // =============================
   return (
     <div className="hub-shell">
-
       <UpdateBanner
         visible={showUpdateBanner}
         latestVersion={latestVersion}
         t={t}
         onDismiss={() => setShowUpdateBanner(false)}
-        onRefresh={() => window.location.reload()}
+        onRefresh={() => {
+          const bust = `t=${Date.now()}`;
+          const target = `${window.location.pathname}${window.location.search ? `${window.location.search}&${bust}` : `?${bust}`}${window.location.hash}`;
+          window.location.replace(target);
+        }}
       />
 
-      {/* Controls (no top bar anymore) */}
       <div className="hub-inner">
-
         <div className="hub-controls" style={{ marginBottom: 12 }}>
           <input
             className="hub-input"
@@ -256,17 +234,10 @@ export default function App() {
         {activeTab === 'events' && <div>Events (Phase 2)</div>}
         {activeTab === 'news' && <div>News (Phase 2)</div>}
         {activeTab === 'more' && <div>About (Phase 2)</div>}
-
       </div>
 
       <div className="hub-mobile-spacer" />
-
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        t={t}
-      />
-
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
     </div>
   );
 }
