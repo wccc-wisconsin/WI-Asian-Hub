@@ -231,56 +231,6 @@ export default function App() {
         }}
       />
 
-      <div className="hub-topbar">
-        <div className="hub-inner">
-          <h1 className="hub-title">{t.title}</h1>
-          <p className="hub-subtitle">{t.subtitle}</p>
-
-          {isStandalone ? (
-            <div className="hub-banner-note">{t.homeScreenNote}</div>
-          ) : null}
-
-          <div className="hub-controls">
-            <input
-              className="hub-input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.search}
-            />
-
-            {activeTab === 'business' && (
-              <>
-                <select
-                  className="hub-select"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  <option value="">{t.allCategories}</option>
-                  {Object.keys(categoryMap).map((key) => (
-                    <option key={key} value={key}>
-                      {categoryMap[key].en}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  className="hub-select"
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                >
-                  <option value="">{t.allLocations}</option>
-                  {locationOptions.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="hub-inner">
         {loading && <div>{t.loading}</div>}
         {error && <div className="hub-error">{error}</div>}
