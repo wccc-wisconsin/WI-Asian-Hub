@@ -14,13 +14,12 @@ import { BUILD_VERSION } from './buildVersion';
 
 const BUSINESSES_RANGE = 'Businesses!A:Z';
 const CATEGORIES_RANGE = 'Categories!A:Z';
+
 const VERSION_CHECK_INTERVAL = 30000;
 const AUTO_REFRESH_AFTER_UPDATE_MS = 15000;
 
 const UI_TEXT = {
   en: {
-    title: 'WCCC Business Directory',
-    subtitle: 'Discover member businesses across Wisconsin',
     search: 'Search businesses',
     allCategories: 'All Categories',
     allLocations: 'All Locations',
@@ -36,8 +35,7 @@ const UI_TEXT = {
     loadError: 'Unable to load data',
     updateAvailable: 'Update available',
     refreshCta: 'Refresh',
-    refreshHelp: 'Tap Refresh to load the latest version.',
-    homeScreenNote: 'Home screen mode detected.',
+    refreshHelp: 'Tap Refresh to load latest version',
     dismiss: 'Dismiss',
   },
 };
@@ -52,6 +50,7 @@ export default function App() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   const [latestVersion, setLatestVersion] = useState('');
   const [isStandalone, setIsStandalone] = useState(false);
@@ -61,19 +60,23 @@ export default function App() {
 
   const t = UI_TEXT[language];
 
+  // =============================
+  // Category Map
+  // =============================
   const categoryMap = useMemo(() => {
     const map = {};
     categories.forEach((item, i) => {
       const key = item.category_key || item.category || `cat-${i}`;
       map[key] = {
         en: item.en || item.english || item.name || key,
-        zh: item.zh || item.chinese || item.name || key,
-        hm: item.hm || item.hmong || item.name || key,
       };
     });
     return map;
   }, [categories]);
 
+  // =============================
+  // Locations
+  // =============================
   const locationOptions = useMemo(() => {
     return dedupeBy(
       businesses
@@ -83,17 +86,16 @@ export default function App() {
     );
   }, [businesses]);
 
+  // =============================
+  // Filtering
+  // =============================
   const filteredBusinesses = useMemo(() => {
     let items = filterSimple(businesses, search, [
       'business_name',
       'name',
       'description',
-      'category',
-      'category_key',
       'city',
       'state',
-      'email',
-      'website',
     ]);
 
     if (selectedCategory) {
@@ -112,126 +114,131 @@ export default function App() {
     return items;
   }, [businesses, search, selectedCategory, selectedLocation]);
 
+  // =============================
+  // Load Data
+  // =============================
   useEffect(() => {
-    setIsStandalone(isStandaloneMode());
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
     async function load() {
       try {
         setLoading(true);
-        setError('');
         const [b, c] = await Promise.all([
           fetchSheet(BUSINESSES_RANGE),
           fetchSheet(CATEGORIES_RANGE),
         ]);
-        if (cancelled) return;
         setBusinesses(b);
         setCategories(c);
       } catch (e) {
-        if (!cancelled) setError(e?.message || 'Failed to load data');
+        setError(e.message);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
-
     load();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
+  // =============================
+  // Standalone Detection
+  // =============================
+  useEffect(() => {
+    setIsStandalone(isStandaloneMode());
+  }, []);
+
+  // =============================
+  // Version Check
+  // =============================
   useEffect(() => {
     let disposed = false;
-    let autoRefreshTimeoutId = null;
+    let timer;
 
-    async function reloadAppNow() {
-      try {
-        const bust = `t=${Date.now()}`;
-        const target = `${window.location.pathname}${
-          window.location.search ? `${window.location.search}&${bust}` : `?${bust}`
-        }${window.location.hash}`;
-        window.location.replace(target);
-      } catch {
-        window.location.reload();
-      }
-    }
-
-    async function checkForUpdates() {
+    async function check() {
       if (versionCheckInFlightRef.current) return;
       versionCheckInFlightRef.current = true;
 
       try {
         const remoteVersion = await fetchLatestBuildVersion();
-        if (disposed || !remoteVersion) return;
+        if (!remoteVersion || disposed) return;
 
         setLatestVersion(remoteVersion);
 
         if (remoteVersion !== currentVersionRef.current) {
           setShowUpdateBanner(true);
 
-          if (autoRefreshTimeoutId) {
-            window.clearTimeout(autoRefreshTimeoutId);
-          }
-
-          autoRefreshTimeoutId = window.setTimeout(() => {
-            if (!disposed) reloadAppNow();
+          timer = setTimeout(() => {
+            window.location.reload(true);
           }, AUTO_REFRESH_AFTER_UPDATE_MS);
         }
-      } catch {
-      } finally {
-        versionCheckInFlightRef.current = false;
-      }
+      } catch {}
+
+      versionCheckInFlightRef.current = false;
     }
 
-    checkForUpdates();
+    check();
 
-    const intervalId = window.setInterval(checkForUpdates, VERSION_CHECK_INTERVAL);
-
-    const onVisible = async () => {
-      if (document.visibilityState === 'visible') {
-        await checkForUpdates();
-      }
-    };
-
-    const onFocus = async () => {
-      await checkForUpdates();
-    };
-
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('pageshow', onFocus);
-    document.addEventListener('visibilitychange', onVisible);
+    const interval = setInterval(check, VERSION_CHECK_INTERVAL);
 
     return () => {
       disposed = true;
-      window.clearInterval(intervalId);
-      if (autoRefreshTimeoutId) window.clearTimeout(autoRefreshTimeoutId);
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('pageshow', onFocus);
-      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(interval);
+      clearTimeout(timer);
     };
   }, []);
 
+  // =============================
+  // UI
+  // =============================
   return (
     <div className="hub-shell">
+
       <UpdateBanner
         visible={showUpdateBanner}
         latestVersion={latestVersion}
         t={t}
         onDismiss={() => setShowUpdateBanner(false)}
-        onRefresh={() => {
-          const bust = `t=${Date.now()}`;
-          const target = `${window.location.pathname}${
-            window.location.search ? `${window.location.search}&${bust}` : `?${bust}`
-          }${window.location.hash}`;
-          window.location.replace(target);
-        }}
+        onRefresh={() => window.location.reload()}
       />
 
+      {/* Controls (no top bar anymore) */}
       <div className="hub-inner">
+
+        <div className="hub-controls" style={{ marginBottom: 12 }}>
+          <input
+            className="hub-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t.search}
+          />
+
+          {activeTab === 'business' && (
+            <>
+              <select
+                className="hub-select"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">{t.allCategories}</option>
+                {Object.keys(categoryMap).map((key) => (
+                  <option key={key} value={key}>
+                    {categoryMap[key].en}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="hub-select"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+              >
+                <option value="">{t.allLocations}</option>
+                {locationOptions.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+
         {loading && <div>{t.loading}</div>}
         {error && <div className="hub-error">{error}</div>}
 
@@ -249,10 +256,17 @@ export default function App() {
         {activeTab === 'events' && <div>Events (Phase 2)</div>}
         {activeTab === 'news' && <div>News (Phase 2)</div>}
         {activeTab === 'more' && <div>About (Phase 2)</div>}
+
       </div>
 
       <div className="hub-mobile-spacer" />
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
+
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        t={t}
+      />
+
     </div>
   );
 }
