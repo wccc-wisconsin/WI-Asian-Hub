@@ -33,7 +33,7 @@ const UI_TEXT = {
     loadError: 'Unable to load data',
     updateAvailable: 'Update available',
     refreshCta: 'Refresh',
-    refreshHelp: 'Tap Refresh to load latest version',
+    refreshHelp: 'Tap Refresh to load the latest version.',
     dismiss: 'Dismiss',
   },
 };
@@ -54,6 +54,7 @@ export default function App() {
 
   const currentVersionRef = useRef(String(BUILD_VERSION || '').trim());
   const versionCheckInFlightRef = useRef(false);
+  const lastSeenRemoteBuildRef = useRef('');
 
   const t = UI_TEXT[language];
 
@@ -63,6 +64,8 @@ export default function App() {
       const key = item.category_key || item.category || `cat-${i}`;
       map[key] = {
         en: item.en || item.english || item.name || key,
+        zh: item.zh || item.chinese || item.name || key,
+        hm: item.hm || item.hmong || item.name || key,
       };
     });
     return map;
@@ -82,10 +85,10 @@ export default function App() {
       'business_name',
       'name',
       'description',
-      'city',
-      'state',
       'category',
       'category_key',
+      'city',
+      'state',
       'email',
       'website',
     ]);
@@ -98,7 +101,8 @@ export default function App() {
 
     if (selectedLocation) {
       items = items.filter(
-        (b) => [b.city, b.state].filter(Boolean).join(', ') === selectedLocation
+        (b) =>
+          [b.city, b.state].filter(Boolean).join(', ') === selectedLocation
       );
     }
 
@@ -106,60 +110,126 @@ export default function App() {
   }, [businesses, search, selectedCategory, selectedLocation]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       try {
         setLoading(true);
         setError('');
+
         const [b, c] = await Promise.all([
           fetchSheet(BUSINESSES_RANGE),
           fetchSheet(CATEGORIES_RANGE),
         ]);
+
+        if (cancelled) return;
+
         setBusinesses(b);
         setCategories(c);
       } catch (e) {
-        setError(e?.message || 'Failed to load data');
+        if (!cancelled) {
+          setError(e?.message || 'Failed to load data');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
+
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     let disposed = false;
-    let timer;
+    let autoRefreshTimeoutId = null;
 
-    async function check() {
+    async function reloadAppNow() {
+      try {
+        const bust = `t=${Date.now()}`;
+        const target = `${window.location.pathname}${
+          window.location.search
+            ? `${window.location.search}&${bust}`
+            : `?${bust}`
+        }${window.location.hash}`;
+        window.location.replace(target);
+      } catch {
+        window.location.reload();
+      }
+    }
+
+    async function checkForUpdates() {
       if (versionCheckInFlightRef.current) return;
       versionCheckInFlightRef.current = true;
 
       try {
         const remoteVersion = await fetchLatestBuildVersion();
-        if (!remoteVersion || disposed) return;
+        if (disposed || !remoteVersion) return;
 
-        setLatestVersion(remoteVersion);
+        const remoteBuild = String(remoteVersion).trim();
+        setLatestVersion(remoteBuild);
 
-        if (remoteVersion !== currentVersionRef.current) {
-          setShowUpdateBanner(true);
-          timer = setTimeout(() => {
-            const bust = `t=${Date.now()}`;
-            const target = `${window.location.pathname}${window.location.search ? `${window.location.search}&${bust}` : `?${bust}`}${window.location.hash}`;
-            window.location.replace(target);
-          }, AUTO_REFRESH_AFTER_UPDATE_MS);
+        if (remoteBuild === currentVersionRef.current) {
+          lastSeenRemoteBuildRef.current = '';
+          return;
         }
+
+        if (lastSeenRemoteBuildRef.current !== remoteBuild) {
+          lastSeenRemoteBuildRef.current = remoteBuild;
+          setShowUpdateBanner(true);
+          return;
+        }
+
+        setShowUpdateBanner(true);
+
+        if (autoRefreshTimeoutId) {
+          window.clearTimeout(autoRefreshTimeoutId);
+        }
+
+        autoRefreshTimeoutId = window.setTimeout(() => {
+          if (!disposed) reloadAppNow();
+        }, AUTO_REFRESH_AFTER_UPDATE_MS);
       } catch {
+        // ignore transient fetch/cache issues
       } finally {
         versionCheckInFlightRef.current = false;
       }
     }
 
-    check();
-    const interval = setInterval(check, VERSION_CHECK_INTERVAL);
+    checkForUpdates();
+
+    const intervalId = window.setInterval(
+      checkForUpdates,
+      VERSION_CHECK_INTERVAL
+    );
+
+    const onVisible = async () => {
+      if (document.visibilityState === 'visible') {
+        await checkForUpdates();
+      }
+    };
+
+    const onFocus = async () => {
+      await checkForUpdates();
+    };
+
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       disposed = true;
-      clearInterval(interval);
-      clearTimeout(timer);
+      window.clearInterval(intervalId);
+      if (autoRefreshTimeoutId) {
+        window.clearTimeout(autoRefreshTimeoutId);
+      }
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pageshow', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
@@ -172,7 +242,11 @@ export default function App() {
         onDismiss={() => setShowUpdateBanner(false)}
         onRefresh={() => {
           const bust = `t=${Date.now()}`;
-          const target = `${window.location.pathname}${window.location.search ? `${window.location.search}&${bust}` : `?${bust}`}${window.location.hash}`;
+          const target = `${window.location.pathname}${
+            window.location.search
+              ? `${window.location.search}&${bust}`
+              : `?${bust}`
+          }${window.location.hash}`;
           window.location.replace(target);
         }}
       />
@@ -217,8 +291,8 @@ export default function App() {
           )}
         </div>
 
-        {loading && <div>{t.loading}</div>}
-        {error && <div className="hub-error">{error}</div>}
+        {loading && <div className="hub-loading">{t.loading}</div>}
+        {error && <div className="hub-error">{error || t.loadError}</div>}
 
         {!loading && !error && activeTab === 'business' && (
           <BusinessModule
@@ -231,13 +305,23 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'events' && <div>Events (Phase 2)</div>}
-        {activeTab === 'news' && <div>News (Phase 2)</div>}
-        {activeTab === 'more' && <div>About (Phase 2)</div>}
+        {!loading && !error && activeTab === 'events' && (
+          <div>Events (Phase 2)</div>
+        )}
+        {!loading && !error && activeTab === 'news' && (
+          <div>News (Phase 2)</div>
+        )}
+        {!loading && !error && activeTab === 'more' && (
+          <div>About (Phase 2)</div>
+        )}
       </div>
 
       <div className="hub-mobile-spacer" />
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} t={t} />
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        t={t}
+      />
     </div>
   );
 }
