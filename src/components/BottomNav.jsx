@@ -2,52 +2,26 @@ import React from 'react';
 
 export default function BottomNav({ activeTab, setActiveTab, t }) {
   const items = [
-    ['business', t.business, '◫'],
-    ['events', t.events, '◷'],
-    ['news', t.news, '☰'],
-    ['more', t.more, '⋯'],
+    { key: 'business', label: t.business, icon: '🏢' },
+    { key: 'events', label: t.events, icon: '📅' },
+    { key: 'news', label: t.news, icon: '📰' },
+    { key: 'more', label: t.more, icon: '⋯' },
   ];
 
   return (
-    <nav
-      aria-label="Mobile navigation"
-      style={{
-        position: 'fixed',
-        left: '0',
-        right: '0',
-        bottom: '0',
-        top: 'auto',
-        zIndex: 99999,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        background: '#ffffff',
-        borderTop: '1px solid #ddd',
-        boxShadow: '0 -4px 12px rgba(0,0,0,0.08)',
-      }}
-    >
-      {items.map(([key, label, icon]) => (
+    <nav className="hub-bottom-nav" aria-label="Mobile navigation">
+      {items.map((item) => (
         <button
-          key={key}
+          key={item.key}
           type="button"
-          onClick={() => setActiveTab(key)}
-          aria-current={activeTab === key ? 'page' : undefined}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            padding: '10px 4px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '3px',
-            fontSize: '11px',
-            color: activeTab === key ? '#1f3c88' : '#6b7280',
-            fontWeight: activeTab === key ? 700 : 500,
-            cursor: 'pointer',
-          }}
+          className={`hub-bottom-nav-btn ${
+            activeTab === item.key ? 'active' : ''
+          }`}
+          onClick={() => setActiveTab(item.key)}
+          aria-current={activeTab === item.key ? 'page' : undefined}
         >
-          <span style={{ fontSize: '18px', lineHeight: 1 }}>{icon}</span>
-          <span>{label}</span>
+          <span className="hub-bottom-nav-icon">{item.icon}</span>
+          <span>{item.label}</span>
         </button>
       ))}
     </nav>
