@@ -1,21 +1,27 @@
 import React from 'react';
 
-export default function UpdateBanner({ visible, latestVersion, t, onDismiss, onRefresh }) {
-  if (!visible) return null;
+export default function BottomNav({ activeTab, setActiveTab, t }) {
+  const items = [
+    ['business', t.business, '◫'],
+    ['events', t.events, '◷'],
+    ['news', t.news, '☰'],
+    ['more', t.more, '⋯'],
+  ];
 
   return (
-    <div className="hub-updatebar">
-      <div>
-        <strong>{t.updateAvailable}</strong>
-        <div>
-          {t.refreshHelp}
-          {latestVersion ? ` (${latestVersion})` : ''}
-        </div>
-      </div>
-      <div className="hub-updatebar-actions">
-        <button type="button" className="hub-dismiss-btn" onClick={onDismiss}>{t.dismiss}</button>
-        <button type="button" className="hub-update-btn" onClick={onRefresh}>{t.refreshCta}</button>
-      </div>
-    </div>
+    <nav className="hub-bottom-nav" aria-label="Mobile navigation">
+      {items.map(([key, label, icon]) => (
+        <button
+          key={key}
+          type="button"
+          className={`hub-bottom-nav-btn ${activeTab === key ? 'active' : ''}`}
+          onClick={() => setActiveTab(key)}
+          aria-current={activeTab === key ? 'page' : undefined}
+        >
+          <span className="hub-bottom-nav-icon">{icon}</span>
+          <span>{label}</span>
+        </button>
+      ))}
+    </nav>
   );
 }
